@@ -1,7 +1,20 @@
 import { delimiter } from 'path';
 import { PassThrough } from 'stream';
 import { map } from 'ramda';
-import * as parseCSV from 'csv-parse';
+import * as _parseCSV from 'csv-parse';
+
+// Custom promisification of the csv parser
+function parseCSV(fileContent: string, opts: any): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    _parseCSV(fileContent, opts, (err: Error | undefined, data: any) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+}
 
 export async function query({
   request
@@ -13,18 +26,11 @@ export async function query({
     return [];
   }
   const res: any[] = [];
-  const parser = parseCSV(request.payload.file, { delimiter: '\t', columns: true }, (err: any, data: any) => {
-    if (err) {
-      // console.error('Error parsing file!');
-      // console.error(err.message);
-      return Promise.reject(err);
-    }
-    data.forEach((o: any) => {
-      const split = (x: string) => x.split(',');
-      res.push(map(split, o));
-    });
+  const data = await parseCSV(request.payload.file, { delimiter: '\t', columns: true });
+  return data.map((v: any, i: number) => {
+    const split = (x: string) => x.split(',');
+    return map(split, v);
   });
-  return res;
 }
 
 export default function parse({
