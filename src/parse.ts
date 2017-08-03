@@ -14,6 +14,11 @@ export async function query({
   }
   const res: any[] = [];
   const parser = parseCSV(request.payload.file, { delimiter: '\t', columns: true }, (err: any, data: any) => {
+    if (err) {
+      // console.error('Error parsing file!');
+      // console.error(err.message);
+      return Promise.reject(err);
+    }
     data.forEach((o: any) => {
       const split = (x: string) => x.split(',');
       res.push(map(split, o));
