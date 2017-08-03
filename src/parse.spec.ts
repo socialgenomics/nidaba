@@ -49,16 +49,16 @@ test('Parse a correctly formatted file with models', async (t: Test) => {
   t.end();
 });
 
-test('Parse a correctly formatted file with models', async (t: Test) => {
+test('Handle broken files with appropriate errors', async (t: Test) => {
+  t.plan(3);
   const req = {
     payload: {
       file: readFileSync('assets/broken-10.tsv')
     }
   };
   const res = query({request: req}).catch(err => {
-    console.log(err);
+    t.assert(err, 'Throw an error for broken files');
+    t.equals(err.message, 'Invalid closing quote at line 3; found " " instead of delimiter "\\t"');
   });
-  t.assert(Array.isArray(res), 'The service returns an array');
-  // t.assert(res.length === 10, 'The number of models is as expected');
-  t.end();
+  t.not(res, 'Not return value on error');
 });
