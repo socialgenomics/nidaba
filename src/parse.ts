@@ -8,6 +8,9 @@ function parseCSV(fileContent: string, opts: any): Promise<any[]> {
   return new Promise((resolve, reject) => {
     _parseCSV(fileContent, opts, (err: Error | undefined, data: any) => {
       if (err) {
+        if (err.message === 'Invalid data argument: undefined') {
+          err.message = 'No valid input file found!';
+        }
         reject(err);
       } else {
         resolve(data);
@@ -21,10 +24,10 @@ export async function query({
 }: {
     request: any
   }): Promise<any> {
-  // TODO: Define error handling
-  if (!request.payload.file) {
-    return [];
-  }
+  // // TODO: Define error handling
+  // if (!request.payload.file) {
+  //   return [];
+  // }
   const res: any[] = [];
   const data = await parseCSV(request.payload.file, { delimiter: '\t', columns: true });
   return data.map((v: any, i: number) => {

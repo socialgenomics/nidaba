@@ -15,14 +15,16 @@ test('Parse an empty file', async (t: Test) => {
   t.end();
 });
 
-test('Handle no file', async (t: Test) => {
+test('Return errors on no file', async (t: Test) => {
+  t.plan(3);
   const req = {
     payload: {}
   };
-  const res = await query({request: req});
-  t.assert(Array.isArray(res), 'The service returns an array');
-  t.assert(res.length === 0, 'The array is empty');
-  t.end();
+  const res = await query({request: req}).catch(err => {
+    t.assert(err, 'Throw an error for broken files');
+    t.equals(err.message, 'No valid input file found!', 'Check for correct error message');
+  });
+  t.false(res, 'The service returns no result');
 });
 
 test('Parse an empty file with headers', async (t: Test) => {
@@ -56,9 +58,9 @@ test('Handle broken files with appropriate errors', async (t: Test) => {
       file: readFileSync('assets/broken-10.tsv')
     }
   };
-  const res = query({request: req}).catch(err => {
+  const res = await query({request: req}).catch(err => {
     t.assert(err, 'Throw an error for broken files');
-    t.equals(err.message, 'Invalid closing quote at line 3; found " " instead of delimiter "\\t"');
+    t.equals(err.message, 'Invalid closing quote at line 3; found " " instead of delimiter "\\t"', 'Check for correct message');
   });
-  t.not(res, 'Not return value on error');
+  t.false(res, 'Don\'t return value on error');
 });
