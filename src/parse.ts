@@ -1,3 +1,4 @@
+import { EINPROGRESS } from 'constants';
 import { delimiter } from 'path';
 import { PassThrough } from 'stream';
 import { map } from 'ramda';
@@ -9,7 +10,7 @@ function parseCSV(fileContent: string, opts: any): Promise<any[]> {
     _parseCSV(fileContent, opts, (err: Error | undefined, data: any) => {
       if (err) {
         if (err.message === 'Invalid data argument: undefined') {
-          err.message = 'No valid input file found!';
+          err.message = 'No valid input file found! - Re-try upload or check file for errors.';
         }
         reject(err);
       } else {
@@ -20,16 +21,16 @@ function parseCSV(fileContent: string, opts: any): Promise<any[]> {
 }
 
 export async function query({
-  request
+  payload
 }: {
-    request: any
+    payload: any
   }): Promise<any> {
   // // TODO: Define error handling
   // if (!request.payload.file) {
   //   return [];
   // }
   const res: any[] = [];
-  const data = await parseCSV(request.payload.file, { delimiter: '\t', columns: true });
+  const data = await parseCSV(payload.file, { delimiter: '\t', columns: true });
   return data.map((v: any, i: number) => {
     const split = (x: string) => x.split(',');
     return map(split, v);
