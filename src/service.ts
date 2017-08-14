@@ -27,7 +27,7 @@ export default async function init({
     };
   }});
 
-  iris.register<any, any>({pattern: `${irisOpts.namespace}.parse`, handler: _parse});
+  iris.register<any, any>({pattern: `action.csv.parse`, handler: _parse});
 
   // iris.register<any, any>({pattern: `action.${irisOpts.namespace}.add`, handler: _add});
 
