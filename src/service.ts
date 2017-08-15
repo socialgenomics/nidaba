@@ -2,7 +2,6 @@ import irisSetup from '@repositive/iris';
 import { IrisAMQP } from '@repositive/iris';
 import * as config from 'config';
 import parse from './parse';
-import { pipeP } from 'ramda';
 
 const pack = require('../package.json');
 
@@ -30,7 +29,6 @@ export default async function init({
 
   irisBackend.register({pattern: `action.csv.parse.file`, async handler({payload}) {
     const res = await _parse({payload: payload.toString()});
-    console.log(typeof res);
     return Buffer.from(JSON.stringify(res));
   }});
 
