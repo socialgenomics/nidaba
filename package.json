@@ -34,7 +34,7 @@
     "service"
   ],
   "dependencies": {
-    "@repositive/iris": "^0.4.1",
+    "@repositive/iris": "^0.5.0",
     "config": "^1.26.1",
     "csv-parse": "^1.2.1",
     "ramda": "^0.24.1"
@@ -45,7 +45,7 @@
     "@types/csv-parse": "^1.1.9",
     "@types/node": "^8.0.19",
     "@types/proxyquire": "^1.3.27",
-    "@types/ramda": "^0.24.6",
+    "@types/ramda": "^0.24.7",
     "@types/sinon": "^2.3.3",
     "@types/tape": "^4.2.30",
     "husky": "^0.14.3",

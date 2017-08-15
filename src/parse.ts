@@ -1,4 +1,3 @@
-import { EINPROGRESS } from 'constants';
 import { delimiter } from 'path';
 import { PassThrough } from 'stream';
 import { map } from 'ramda';
@@ -20,17 +19,8 @@ function parseCSV(fileContent: string, opts: any): Promise<any[]> {
   });
 }
 
-export async function query({
-  payload
-}: {
-    payload: any
-  }): Promise<any> {
-  // // TODO: Define error handling
-  // if (!request.payload.file) {
-  //   return [];
-  // }
-  const res: any[] = [];
-  const data = await parseCSV(payload.file, { delimiter: '\t', columns: true });
+export async function query(payload: any): Promise<any> {
+  const data = await parseCSV(payload, { delimiter: '\t', columns: true });
   return data.map((v: any, i: number) => {
     const split = (x: string) => x.split(',');
     return map(split, v);

@@ -1,7 +1,8 @@
 import irisSetup from '@repositive/iris';
-import {LibOpts} from '@repositive/iris';
+import { IrisAMQP } from '@repositive/iris';
 import * as config from 'config';
 import parse from './parse';
+import { pipeP } from 'ramda';
 
 const pack = require('../package.json');
 
@@ -16,9 +17,9 @@ export default async function init({
   _parse?: typeof parse,
   _pack?: {version: string}
 }): Promise<void> {
-  const irisOpts = _config.get<LibOpts<any>>('iris');
-
+  const irisOpts = _config.get<any>('iris');
   const iris = await _irisSetup(irisOpts);
+  const irisBackend = await IrisAMQP(irisOpts);
 
   iris.register({pattern: `status.${irisOpts.namespace}`, async handler(msg: any) {
     return {
@@ -27,8 +28,10 @@ export default async function init({
     };
   }});
 
-  iris.register<any, any>({pattern: `action.csv.parse`, handler: _parse});
-
-  // iris.register<any, any>({pattern: `action.${irisOpts.namespace}.add`, handler: _add});
+  irisBackend.register({pattern: `action.csv.parse.file`, async handler({payload}) {
+    const res = await _parse({payload: payload.toString()});
+    console.log(typeof res);
+    return Buffer.from(JSON.stringify(res));
+  }});
 
 }
