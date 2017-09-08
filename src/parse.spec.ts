@@ -1,7 +1,7 @@
 import * as test from 'tape';
 import { Test } from 'tape';
 import { query } from './parse';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 
 test('Parse an empty file', async (t: Test) => {
   const req = readFileSync('assets/empty.tsv');
@@ -30,11 +30,12 @@ test('Parse an empty file with headers', async (t: Test) => {
 });
 
 test('Parse a correctly formatted file with models', async (t: Test) => {
-  const req = readFileSync('assets/out.tsv');
+  const req = readFileSync('assets/segments2.txt');
   const res = await query(req);
   t.assert(Array.isArray(res), 'The service returns an array');
   t.assert(res.length === 10, 'The number of models is as expected');
   t.end();
+  writeFileSync('test.json', JSON.stringify(res, undefined, 2));
 });
 
 test('Handle broken files with appropriate errors', async (t: Test) => {

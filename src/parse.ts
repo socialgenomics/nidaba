@@ -22,7 +22,7 @@ function parseCSV(fileContent: string, opts: any): Promise<any[]> {
 export async function query(payload: any): Promise<any> {
   const data = await parseCSV(payload, { delimiter: '\t', columns: true });
   return data.map((v: any, i: number) => {
-    const split = (x: string) => x.split(',');
+    const split = (x: string) => x.split(',').map(s => s.trim());
     return map(split, v);
   });
 }

@@ -1,6 +1,7 @@
 {
   "iris": {
     "uri": "amqp://guest:guest@rabbit",
+    "exchange": "iris",
     "namespace": "nidaba"
   }
 }
