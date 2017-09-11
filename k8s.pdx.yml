@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: nidaba
+  namespace: pdx
+  labels:
+    app: nidaba
+    env: pdx
+    criticality: med
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nidaba
+        env: pdx
+        criticality: med
+    spec:
+      containers:
+        - name: nidaba
+          image: registry.repositive.io:5000/nidaba:beta
+          env:
+            - name: RABBIT_URI
+              valueFrom:
+                secretKeyRef:
+                  name: rabbit-urls-pdx
+                  key: rabbit
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 200m
+      imagePullSecrets:
+        - name: regsecret
