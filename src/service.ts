@@ -30,10 +30,9 @@ export default async function init({
   irisBackend.register({pattern: `action.csv.parse.file`, async handler({payload}) {
     console.log('Nidaba:');
     // console.log(JSON.parse(payload.toString()));
-    console.log(payload.toString());
+    // console.log(payload.toString());
     // console.log('----- END');
     const res = await _parse({payload: payload.toString()}).catch(console.log);
-    console.log(res);
     console.log(res.length);
     return Buffer.from(JSON.stringify(res));
   }});
