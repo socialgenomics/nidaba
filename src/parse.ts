@@ -6,6 +6,8 @@ import * as _parseCSV from 'csv-parse';
 // Custom promisification of the csv parser
 function parseCSV(fileContent: string, opts: any): Promise<any[]> {
   return new Promise((resolve, reject) => {
+
+    console.log(fileContent);
     _parseCSV(fileContent, opts, (err: Error | undefined, data: any) => {
       if (err) {
         if (err.message === 'Invalid data argument: undefined') {
@@ -19,8 +21,8 @@ function parseCSV(fileContent: string, opts: any): Promise<any[]> {
   });
 }
 
-export async function query(payload: any): Promise<any> {
-  const data = await parseCSV(payload, { delimiter: '\t', columns: true });
+export async function query(payload: any, options: any): Promise<any> {
+  const data = await parseCSV(payload, options);
   return data.map((v: any, i: number) => {
     const split = (x: string) => x.split(',').map(s => s.trim());
     return map(split, v);
@@ -29,10 +31,12 @@ export async function query(payload: any): Promise<any> {
 
 export default function parse({
   payload,
+  _options,
   _query = query
 }: {
     payload: any,
+    _options?: any,
     _query?: typeof query
   }) {
-  return _query(payload);
+  return _query(payload, _options);
 }

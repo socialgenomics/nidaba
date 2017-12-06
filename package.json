@@ -10,6 +10,7 @@
   "scripts": {
     "precommit": "npm run lint",
     "start": "node .",
+    "setup": "npm i && tsc --outDir dist",
     "startDev": "nodemon --watch src/ --watch package.json -e ts,json -q -x 'rm -fr dist && echo \"\\n============\\nCOMPILING...\\n============\\n\\n\" && tsc --outDir dist || return 0 && node .'",
     "testDev": "nodemon --watch src/ --watch package.json -e ts,json -q -x 'rm -fr dist && echo \"\\n============\\nCOMPILING...\\n============\\n\\n\" && tsc --outDir dist || return 0 && tape $(find dist -name '*.spec.js' ! -name 'index.js') | tap-spec'",
     "make": "rm -fr dist && tsc",
@@ -34,7 +35,7 @@
     "service"
   ],
   "dependencies": {
-    "@repositive/iris": "^0.5.0",
+    "@repositive/iris": "^0.7.7",
     "config": "^1.26.1",
     "csv-parse": "^1.2.1",
     "ramda": "^0.24.1"
