@@ -55,4 +55,7 @@ export default async function init({
   const tab_handler = inject({ args: { _options: { delimiter: '\s', columns: true } }, func: _handler });
   irisBackend.register({ pattern: `action.tab.parse.file`, handler: tab_handler });
 
+  const vcf_handler = inject({ args: { _options: { delimiter: '\t', columns: true, comment: '##' } }, func: _handler });
+  irisBackend.register({ pattern: `action.vcf.parse.file`, handler: vcf_handler });
+
 }
