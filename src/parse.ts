@@ -7,7 +7,6 @@ import * as _parseCSV from 'csv-parse';
 function parseCSV(fileContent: string, opts: any): Promise<any[]> {
   return new Promise((resolve, reject) => {
 
-    console.log(fileContent);
     _parseCSV(fileContent, opts, (err: Error | undefined, data: any) => {
       if (err) {
         if (err.message === 'Invalid data argument: undefined') {
