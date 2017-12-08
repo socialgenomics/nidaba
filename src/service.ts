@@ -9,17 +9,19 @@ const pack = require('../package.json');
 export default async function init({
   _config = config,
   _irisSetup = irisSetup,
+  _irisAMQP = IrisAMQP,
   _parse = parse,
   _pack = pack
 }: {
     _config?: typeof config,
     _irisSetup?: typeof irisSetup,
+    _irisAMQP?: typeof IrisAMQP,
     _parse?: typeof parse,
     _pack?: { version: string }
   }): Promise<void> {
   const irisOpts = _config.get<any>('iris');
   const iris = await _irisSetup(irisOpts);
-  const irisBackend = await IrisAMQP(irisOpts);
+  const irisBackend = await _irisAMQP(irisOpts);
 
   iris.register({
     pattern: `status.${irisOpts.namespace}`, async handler(msg: any) {
