@@ -3,18 +3,12 @@ kind: Deployment
 metadata:
   name: nidaba
   namespace: pdx
-  labels:
-    app: nidaba
-    env: pdx
-    criticality: med
 spec:
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
         app: nidaba
-        env: pdx
-        criticality: med
     spec:
       containers:
         - name: nidaba
@@ -23,11 +17,13 @@ spec:
             - name: RABBIT_URI
               valueFrom:
                 secretKeyRef:
-                  name: rabbit-urls-pdx
-                  key: rabbit
+                  name: rabbit
+                  key: url
           resources:
+            limits:
+              memory: 120Mi
             requests:
-              memory: 128Mi
-              cpu: 200m
+              memory: 90Mi
+              cpu: 0.01
       imagePullSecrets:
         - name: regsecret
