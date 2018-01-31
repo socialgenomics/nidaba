@@ -21,7 +21,7 @@ spec:
                   key: url
           resources:
             limits:
-              memory: 120Mi
+              memory: 500Mi
             requests:
               memory: 90Mi
               cpu: 0.01
