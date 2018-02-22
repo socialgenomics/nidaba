@@ -16,4 +16,4 @@ networks:
   service:
   rabbit:
     external:
-      name: rabbit
+      name: infra_rabbit
