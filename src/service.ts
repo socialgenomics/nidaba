@@ -40,12 +40,15 @@ export default async function init({
       _options: any
     }) {
     console.log('Nidaba:');
-    // console.log(JSON.parse(payload.toString()));
-    // console.log(payload.toString());
-    // console.log('----- END');
-    const res = await _parse({ payload: payload.toString(), _options }).catch(console.log);
-    console.log(res.length);
-    return Buffer.from(JSON.stringify(res));
+
+    return _parse({ payload: payload.toString(), _options })
+      .then(res => {
+        if (!Array.isArray(res)) {
+          throw new Error('Unexpected Error: Something went wrong in parsing file!');
+        }
+        console.log(res.length);
+        return Buffer.from(JSON.stringify(res));
+      });
   };
 
   const csv_handler = inject({ args: { _options: { delimiter: ',', columns: true } }, func: _handler });
