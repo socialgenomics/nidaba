@@ -1,298 +1,132 @@
 version: 2
 
-defaults: &defaults
-  working_directory: ~/nidaba
-
-jobs:
-  test:
-    <<: *defaults
-    docker:
-      - image: circleci/node:8.5
-    steps:
-      - checkout
-      # - run:
-      #     name: update-npm
-      #     command: |
-      #       sudo npm install -g npm@latest
-      - restore_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
-      - run:
-          name: install-npm-wee
-          command: |
-            npm install
-      - save_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
-          paths:
-            - ./node_modules
-      - run:
-          name: make
-          command: |
-            npm run make
-      - run:
-          name: lint
-          command: |
-            npm run lint
-#      - run:
-#          name: test
-#          command: |
-#            npm test
-
-#      - run:
-#          name: code-coverage
-#          command: './node_modules/.bin/nyc report --reporter=text-lcov'
-#      - store_artifacts:
-#          path: test-results.xml
-#          prefix: tests
-#      - store_artifacts:
-#          path: coverage
-#          prefix: coverage
-#      - store_test_results:
-#          path: test-results.xml
-      - persist_to_workspace:
-          root: .
-          paths:
-            - dist
-            - node_modules
-
-  setup_release:
-    <<: *defaults
-    docker:
-      - image: istareldritch/curl-envsubst
-    steps:
-      - checkout
-      - attach_workspace:
-          at: workspace
-      - run:
-          name: Setup workspace
-          command: |
-            mv workspace/dist dist
-            mv workspace/node_modules node_modules
-
-      # Kubectl Setup
-      - run:
-          name: install-kubectl
-          command: |
-            curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl
-      - run:
-          name: Push application Docker image
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              curl -O -u $DEPLOYMENT_USER:$DEPLOYMENT_PASS https://deployment-server-staging.repositive.io/kubeconfig-staging
-              #              TAG=$(git describe --abbrev=0).$(git rev-parse --short HEAD) envsubst '${TAG}' < .circleci/k8s.staging.yml > deploy-staging.yml
-              TAG=$(git describe --abbrev=0).$(git rev-parse --short HEAD) envsubst '${TAG}' < .circleci/k8s.pdx-staging.yml > deploy-pdx-staging.yml
-                if git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
-                  curl -O -u $DEPLOYMENT_USER:$DEPLOYMENT_PASS https://deployment-server-production.repositive.io/kubeconfig-production
-                  TAG=$(git describe --abbrev=0).$(git rev-parse --short HEAD) envsubst '${TAG}' < .circleci/k8s.pdx-production.yml > deploy-pdx-production.yml
-                  #                  TAG=$(git describe --abbrev=0).$(git rev-parse --short HEAD) envsubst '${TAG}' < .circleci/k8s.production.yml > deploy-production.yml
-                fi
-            fi
-
-      - persist_to_workspace:
-          root: .
-          paths:
-            - dist
-            - node_modules
-            - kubectl
-            - kubeconfig-staging
-            - kubeconfig-production
-            - deploy-staging.yml
-            - deploy-pdx-staging.yml
-            - deploy-production.yml
-            - deploy-pdx-production.yml
-
-  build_container:
-    <<: *defaults
-    docker:
-      - image: docker:17.05.0-ce-git
-    steps:
-      - checkout
-      - attach_workspace:
-          at: workspace
-      - run:
-          name: Setup workspace
-          command: |
-            mv workspace/dist dist
-            mv workspace/node_modules node_modules
-            mv workspace/kubectl kubectl
-
-            mv workspace/kubeconfig-staging kubeconfig-staging 2> /dev/null || echo "No kubectl config for staging"
-            mv workspace/deploy-staging.yml deploy-staging.yml 2> /dev/null || echo "No deployment config for staging"
-            mv workspace/deploy-pdx-staging.yml deploy-pdx-staging.yml 2> /dev/null || echo "No deployment config for PDX staging"
-
-            mv workspace/kubeconfig-production kubeconfig-production 2> /dev/null || echo "No kubectl config for production"
-            mv workspace/deploy-production.yml deploy-production.yml 2> /dev/null || echo "No deployment config for production"
-            mv workspace/deploy-pdx-production.yml deploy-pdx-production.yml 2> /dev/null || echo "No deployment config for PDX production"
-
-      - setup_remote_docker
-
-      # Build the image
-      - run:
-          name: Build application Docker image
-          command: |
-              docker build --cache-from=app -t app .
-
-      # Push to the docker registry
-      - run:
-          name: Login in the docker registry
-          command: |
-            docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS registry.repositive.io:5000
-
-      - run:
-          name: Push application Docker image
-          command: |
-            docker tag app "registry.repositive.io:5000/nidaba:latest"
-            docker push "registry.repositive.io:5000/nidaba:latest"
-            docker tag app "registry.repositive.io:5000/nidaba:$(git describe --abbrev=0).$(git rev-parse --short HEAD)"
-            docker push "registry.repositive.io:5000/nidaba:$(git describe --abbrev=0).$(git rev-parse --short HEAD)"
-      - persist_to_workspace:
-          root: .
-          paths:
-            - kubectl
-            - kubeconfig-staging
-            - kubeconfig-production
-            - deploy-staging.yml
-            - deploy-pdx-staging.yml
-            - deploy-production.yml
-            - deploy-pdx-production.yml
-
-  release_staging:
-    <<: *defaults
-    docker:
-      - image: istareldritch/curl-envsubst
-    steps:
-      - checkout
-      - attach_workspace:
-          at: workspace
-      - run:
-          name: Setup workspace
-          command: |
-            mv workspace/kubectl kubectl
-
-            mv workspace/kubeconfig-staging kubeconfig-staging 2> /dev/null || echo "No kubectl config for staging"
-            mv workspace/deploy-staging.yml deploy-staging.yml 2> /dev/null || echo "No deployment config for staging"
-
-      - deploy:
-          name: Push application Docker image
-          command: |
-            if [ -f ./deploy-staging.yml ]; then
-              KUBECONFIG=kubeconfig-staging ./kubectl apply -f deploy-staging.yml
-              curl "https://slack.com/api/chat.postMessage?token=$SLACK_TOKEN&channel=dev&as_user=Liz&text=:rocket:%20*New%20Staging%20Deployment:*%20Nidaba%20$TAG$(git describe --abbrev=0).$(git rev-parse --short HEAD)"
-            fi
-
-  release_pdx_staging:
-    <<: *defaults
-    docker:
-      - image: istareldritch/curl-envsubst
-    steps:
-      - checkout
-      - attach_workspace:
-          at: workspace
-      - run:
-          name: Setup workspace
-          command: |
-            mv workspace/kubectl kubectl
-
-            mv workspace/kubeconfig-staging kubeconfig-staging 2> /dev/null || echo "No kubectl config for staging"
-            mv workspace/deploy-pdx-staging.yml deploy-pdx-staging.yml 2> /dev/null || echo "No deployment config for PDX staging"
-
-      - deploy:
-          name: Push application Docker image
-          command: |
-            if [ -f ./deploy-pdx-staging.yml ]; then
-              KUBECONFIG=kubeconfig-staging ./kubectl apply -f deploy-pdx-staging.yml
-              curl "https://slack.com/api/chat.postMessage?token=$SLACK_TOKEN&channel=dev&as_user=Liz&text=:rocket:%20*New%20PDX%20Staging%20Deployment:*%20Nidaba%20$TAG$(git describe --abbrev=0).$(git rev-parse --short HEAD)"
-            fi
-
-  release_production:
-    <<: *defaults
-    docker:
-      - image: istareldritch/curl-envsubst
-    steps:
-      - checkout
-      - attach_workspace:
-          at: workspace
-      - run:
-          name: Setup workspace
-          command: |
-            mv workspace/kubectl kubectl
-
-            mv workspace/kubeconfig-production kubeconfig-production 2> /dev/null || echo "No kubectl config for production"
-            mv workspace/deploy-production.yml deploy-production.yml 2> /dev/null || echo "No deployment config for production"
-
-      - deploy:
-          name: Push application Docker image
-          command: |
-            if [ -f ./deploy-production.yml ]; then
-                KUBECONFIG=kubeconfig-production ./kubectl apply -f deploy-production.yml
-                curl "https://slack.com/api/chat.postMessage?token=$SLACK_TOKEN&channel=dev&as_user=Liz&text=:rocket:%20*New%20Production%20Deployment:*%20Nidaba%20$TAG$(git describe --abbrev=0).$(git rev-parse --short HEAD)"
-            fi
-
-  release_pdx_production:
-    <<: *defaults
-    docker:
-      - image: istareldritch/curl-envsubst
-    steps:
-      - checkout
-      - attach_workspace:
-          at: workspace
-      - run:
-          name: Setup workspace
-          command: |
-            mv workspace/kubectl kubectl
-
-            mv workspace/kubeconfig-production kubeconfig-production 2> /dev/null || echo "No kubectl config for production"
-            mv workspace/deploy-pdx-production.yml deploy-pdx-production.yml 2> /dev/null || echo "No deployment config for PDX production"
-
-      - deploy:
-          name: Push application Docker image
-          command: |
-            if [ -f ./deploy-pdx-production.yml ]; then
-              KUBECONFIG=kubeconfig-production ./kubectl apply -f deploy-pdx-production.yml
-              curl "https://slack.com/api/chat.postMessage?token=$SLACK_TOKEN&channel=dev&as_user=Liz&text=:rocket:%20*New%20PDX%20Production%20Deployment:*%20Nidaba%20$TAG$(git describe --abbrev=0).$(git rev-parse --short HEAD)"
-            fi
-
-
 workflows:
   version: 2
   test_and_release:
     jobs:
-      - test
-      - setup_release:
-          requires:
-            - test
+      - test_and_make:
           filters:
             branches:
-              only: master
+              ignore:
+                - production
       - build_container:
-          requires:
-            - setup_release
           filters:
             branches:
-              only: master
-#      - release_staging:
-#          requires:
-#            - build_container
-#          filters:
-#            branches:
-#              only: master
-      - release_pdx_staging:
+              only:
+                - master
+          requires:
+            - test_and_make
+      - release_pdx-dev:
           requires:
             - build_container
+      - release_pdx-staging:
+          requires:
+            - build_container
+      - compute_tag:
           filters:
             branches:
-              only: master
-#      - release_production:
-#          requires:
-#            - build_containera
-#          filters:
-#           branches:
-#             only: master
-#      - release_pdx_production:
-#          requires:
-#            - build_container
-#          filters:
-#            branches:
-#              only: master
-#          filters:
-#            branches:
-#              only: master
+              only:
+                - production
+      - release_pdx-production:
+          requires:
+            - compute_tag
+      - create_release_tag:
+          requires:
+            - release_pdx-production
+
+deploy_image: &deploy_image
+  docker:
+    - image: reposibot/deployer:latest
+  steps:
+    - attach_workspace:
+        at: .
+    - run:
+        name: release staging
+        command: |
+          TAG="$(cat tag.txt)"
+          curl -sSO -u "${DEPLOYER_USERNAME}":"${DEPLOYER_PASSWORD}" \
+            "https://deployer.repositive.io/scripts/deploy.sh"
+          sh deploy.sh "$CIRCLE_PROJECT_REPONAME:$TAG" $CLUSTER $CONFIG_PATH
+
+jobs:
+  test_and_make:
+    docker:
+      - image: circleci/node:8.9
+    steps:
+      - checkout
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run: sudo npm install -g npm@latest
+      - run: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run: npm run make
+      - run: npm run lint
+      - run: npm run test
+      - run: echo "$(git rev-parse --short HEAD)" > tag.txt
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+            - node_modules
+            - tag.txt
+
+  build_container:
+    machine: true
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Push image to registry
+          command: |
+            REPO="${CIRCLE_PROJECT_REPONAME}"
+            TAG="$(cat tag.txt)"
+
+            docker build -t app .
+            docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" registry.repositive.io:5000
+            docker tag app "registry.repositive.io:5000/${REPO}:latest"
+            docker tag app "registry.repositive.io:5000/${REPO}:${TAG}"
+            docker push "registry.repositive.io:5000/${REPO}:latest"
+            docker push "registry.repositive.io:5000/${REPO}:${TAG}"
+
+  compute_tag:
+    machine: true
+    steps:
+      - checkout
+      - run: echo "$(git rev-parse --short HEAD)" > tag.txt
+      - persist_to_workspace:
+          root: .
+          paths:
+            - tag.txt
+
+  create_release_tag:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Create release tag
+          command: |
+            TAG="$(date +%s)"
+            SHA="$(git rev-parse HEAD)"
+            curl -fsS -u "${GITHUB_USERNAME}":"${GITHUB_PASSWORD}" \
+              -d '{"ref":"refs/tags/'"${TAG}"'", "sha":"'"${SHA}"'"}' \
+              -X POST "https://api.github.com/repos/repositive/${CIRCLE_PROJECT_REPONAME}/git/refs"
+
+  release_pdx-dev:
+    environment:
+      - CLUSTER: 'pdx-dev'
+    <<: *deploy_image
+
+  release_pdx-staging:
+    environment:
+      - CLUSTER: 'staging'
+      - CONFIG_PATH: '.circleci/k8s.pdx-staging.yml'
+    <<: *deploy_image
+
+  release_pdx-production:
+    environment:
+      - CLUSTER: 'pdx-production'
+    <<: *deploy_image
