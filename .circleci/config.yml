@@ -19,9 +19,6 @@ workflows:
       - release_pdx-dev:
           requires:
             - build_container
-      - release_pdx-staging:
-          requires:
-            - build_container
       - compute_tag:
           filters:
             branches:
