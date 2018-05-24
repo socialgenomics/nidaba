@@ -114,7 +114,7 @@ jobs:
 
   release_pdx-dev:
     environment:
-      - CLUSTER: 'pdx-dev'
+      - CLUSTER: 'dev'
     <<: *deploy_image
 
   release_pdx-staging:

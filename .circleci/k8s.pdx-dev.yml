@@ -2,7 +2,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: nidaba
-  namespace: pdx
+  namespace: cmp
 spec:
   replicas: 2
   template:
