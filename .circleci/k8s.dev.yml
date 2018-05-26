@@ -1,0 +1,29 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: nidaba
+  namespace: cmp
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nidaba
+    spec:
+      containers:
+        - name: nidaba
+          image: registry.repositive.io:5000/nidaba:${TAG}
+          env:
+            - name: RABBIT_URI
+              valueFrom:
+                secretKeyRef:
+                  name: rabbit
+                  key: url
+          resources:
+            limits:
+              memory: 120Mi
+            requests:
+              memory: 90Mi
+              cpu: 0.01
+      imagePullSecrets:
+        - name: regsecret
