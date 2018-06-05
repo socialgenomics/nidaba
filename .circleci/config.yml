@@ -41,7 +41,7 @@ deploy_image: &deploy_image
     - attach_workspace:
         at: .
     - run:
-        name: release staging
+        name: release
         command: |
           TAG="$(cat tag.txt)"
           curl -sSO -u "${DEPLOYER_USERNAME}":"${DEPLOYER_PASSWORD}" \
