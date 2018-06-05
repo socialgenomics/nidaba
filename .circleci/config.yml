@@ -16,7 +16,7 @@ workflows:
                 - master
           requires:
             - test_and_make
-      - release_pdx-dev:
+      - release_cmp-dev:
           requires:
             - build_container
       - compute_tag:
@@ -24,12 +24,15 @@ workflows:
             branches:
               only:
                 - production
-      - release_pdx-production:
+      - release_cmp-production:
+          requires:
+            - compute_tag
+      - release_cmp-demo:
           requires:
             - compute_tag
       - create_release_tag:
           requires:
-            - release_pdx-production
+            - release_cmp-production
 
 deploy_image: &deploy_image
   docker:
@@ -112,18 +115,20 @@ jobs:
               -d '{"ref":"refs/tags/'"${TAG}"'", "sha":"'"${SHA}"'"}' \
               -X POST "https://api.github.com/repos/repositive/${CIRCLE_PROJECT_REPONAME}/git/refs"
 
-  release_pdx-dev:
+  release_cmp-dev:
     environment:
       - CLUSTER: 'dev'
+      - CONFIG_PATH: '.circleci/k8s.dev.yml'
     <<: *deploy_image
 
-  release_pdx-staging:
+  release_cmp-production:
     environment:
-      - CLUSTER: 'staging'
-      - CONFIG_PATH: '.circleci/k8s.pdx-staging.yml'
+      - CLUSTER: 'production'
+      - CONFIG_PATH: '.circleci/k8s.production.yml'
     <<: *deploy_image
 
-  release_pdx-production:
+  release_cmp-demo:
     environment:
-      - CLUSTER: 'pdx-production'
+      - CLUSTER: 'dev'
+      - CONFIG_PATH: '.circleci/k8s.demo.yml'
     <<: *deploy_image
