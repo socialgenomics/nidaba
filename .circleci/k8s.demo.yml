@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
         - name: nidaba
-          image: registry.repositive.io:5000/nidaba:0d98e73
+          image: registry.repositive.io:5000/nidaba:${TAG}
           env:
             - name: RABBIT_URI
               valueFrom:
