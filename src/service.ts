@@ -9,28 +9,15 @@ const pack = require('../package.json');
 export default async function init({
   _config = config,
   _irisSetup = irisSetup,
-  _irisAMQP = IrisAMQP,
   _parse = parse,
   _pack = pack
 }: {
     _config?: typeof config,
     _irisSetup?: typeof irisSetup,
-    _irisAMQP?: typeof IrisAMQP,
     _parse?: typeof parse,
     _pack?: { version: string }
   }): Promise<void> {
   const irisOpts = _config.get<any>('iris');
-  const iris = await _irisSetup(irisOpts);
-  const irisBackend = await _irisAMQP(irisOpts);
-
-  iris.register({
-    pattern: `status.${irisOpts.namespace}`, async handler(msg: any) {
-      return {
-        name: _pack.name,
-        version: _pack.version
-      };
-    }
-  });
 
   const _handler = async function ({
     payload,
@@ -51,13 +38,29 @@ export default async function init({
       });
   };
 
-  const csv_handler = inject({ args: { _options: { delimiter: ',', columns: true } }, func: _handler });
-  irisBackend.register({ pattern: `action.csv.parse.file`, handler: csv_handler });
 
-  const tsv_handler = inject({ args: { _options: { delimiter: '\t', columns: true } }, func: _handler });
-  irisBackend.register({ pattern: `action.tsv.parse.file`, handler: tsv_handler });
+  _irisSetup(irisOpts).map(iris => {
+    iris.register({
+      pattern: `status.${irisOpts.namespace}`, async handler(msg: any) {
+        return {
+          name: _pack.name,
+          version: _pack.version
+        };
+      }
+    });
 
-  const vcf_handler = inject({ args: { _options: { delimiter: '\t', columns: true, comment: '##' } }, func: _handler });
-  irisBackend.register({ pattern: `action.vcf.parse.file`, handler: vcf_handler });
+    const irisBackend = iris.backend;
+
+
+    const csv_handler = inject({ args: { _options: { delimiter: ',', columns: true } }, func: _handler });
+    irisBackend.register({ pattern: `action.csv.parse.file`, handler: csv_handler });
+
+    const tsv_handler = inject({ args: { _options: { delimiter: '\t', columns: true } }, func: _handler });
+    irisBackend.register({ pattern: `action.tsv.parse.file`, handler: tsv_handler });
+
+    const vcf_handler = inject({ args: { _options: { delimiter: '\t', columns: true, comment: '##' } }, func: _handler });
+    irisBackend.register({ pattern: `action.vcf.parse.file`, handler: vcf_handler });
+
+  });
 
 }
