@@ -61,6 +61,7 @@ export default async function init({
     const vcf_handler = inject({ args: { _options: { delimiter: '\t', columns: true, comment: '##' } }, func: _handler });
     irisBackend.register({ pattern: `action.vcf.parse.file`, handler: vcf_handler });
 
-  });
+  })
+    .subscribe();
 
 }
