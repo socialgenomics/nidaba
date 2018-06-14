@@ -35,7 +35,7 @@
     "service"
   ],
   "dependencies": {
-    "@repositive/iris": "^0.7.7",
+    "@repositive/iris": "^1.0.0-alpha.8",
     "config": "^1.26.1",
     "csv-parse": "^1.2.1",
     "ramda": "^0.24.1"

@@ -7,16 +7,15 @@ test('Testing basic service', (t: Test) => {
   async function _test() {
 
     const _pack = { name: 'nidaba', version: '1' };
-    const _iris = { request: stub() as any, register: stub().returns(Promise.resolve()) as any };
-    const _irisSetup = stub().returns(Promise.resolve(_iris));
+    const _irisBackend = { request: stub() as any, register: stub().returns(Promise.resolve()) as any };
+    const _iris = { request: stub() as any, register: stub().returns(Promise.resolve()) as any, backend: _irisBackend };
+    const _irisSetup = stub().returns({map: stub().callsArgWith(0, _iris)});
     const irisConfig = { url: 'a', exchange: 'b', namespace: 'nidaba' };
     const _config = { get: stub().returns(irisConfig) } as any;
-    const _irisBackend = { register: stub().returns(Promise.resolve()) as any };
-    const _irisAMQP = stub().returns(Promise.resolve(_irisBackend));
 
     t.equals(typeof init, 'function', 'Service exports a function');
 
-    const setupResult = init({ _pack, _irisSetup, _irisAMQP, _config });
+    const setupResult = init({ _pack, _irisSetup, _config });
 
     t.ok(setupResult instanceof Promise, 'Service setup must return a promise');
 
@@ -24,7 +23,8 @@ test('Testing basic service', (t: Test) => {
       .then(() => {
         t.ok(true, 'Yeah, service setup does not blow up');
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error(err);
         t.notOk(true, 'Setup should not blow up at this point');
       });
 
