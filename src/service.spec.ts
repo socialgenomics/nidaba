@@ -9,7 +9,7 @@ test('Testing basic service', (t: Test) => {
     const _pack = { name: 'nidaba', version: '1' };
     const _irisBackend = { request: stub() as any, register: stub().returns(Promise.resolve()) as any };
     const _iris = { request: stub() as any, register: stub().returns(Promise.resolve()) as any, backend: _irisBackend };
-    const _irisSetup = stub().returns({map: stub().callsArgWith(0, _iris)});
+    const _irisSetup = stub().returns({map: stub().callsArgWith(0, _iris).returns({subscribe: stub()})});
     const irisConfig = { url: 'a', exchange: 'b', namespace: 'nidaba' };
     const _config = { get: stub().returns(irisConfig) } as any;
 
