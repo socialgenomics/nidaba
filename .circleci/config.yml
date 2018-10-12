@@ -66,6 +66,8 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: echo "$(git rev-parse --short HEAD)" > tag.txt
+      - store_artifacts:
+          path: ./coverage
       - persist_to_workspace:
           root: .
           paths:
