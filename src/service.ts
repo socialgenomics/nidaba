@@ -35,6 +35,10 @@ export default async function init({
         }
         console.log(res.length);
         return Buffer.from(JSON.stringify(res));
+      })
+      .catch(err => {
+        console.log(err.message);
+        return Buffer.from(`ERROR: ${err.message}`);
       });
   };
 
@@ -43,7 +47,6 @@ export default async function init({
     iris.register({
       pattern: `status.${irisOpts.namespace}`, async handler(msg: any) {
         return {
-          name: _pack.name,
           version: _pack.version
         };
       }
