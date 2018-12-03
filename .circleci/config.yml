@@ -8,31 +8,54 @@ workflows:
           filters:
             branches:
               ignore:
-                - production
+                - cmp-rc
+                - cmp-demo
+                - cmp-prod
+
+      - compute_tag:
+          filters:
+            branches:
+              only:
+                - master
+                - cmp-rc
+                - cmp-demo
+                - cmp-prod
+
       - build_container:
           filters:
             branches:
               only:
                 - master
           requires:
+            - compute_tag
             - test_and_make
-      - release_cmp-dev:
-          requires:
-            - build_container
-      - compute_tag:
+
+      - release_cmp-rc:
           filters:
             branches:
               only:
-                - production
-      - release_cmp-production:
+                - cmp-rc
           requires:
             - compute_tag
       - release_cmp-demo:
+          filters:
+            branches:
+              only:
+                - cmp-demo
+          requires:
+            - compute_tag
+      - release_cmp-prod:
+          filters:
+            branches:
+              only:
+                - cmp-prod
           requires:
             - compute_tag
       - create_release_tag:
           requires:
-            - release_cmp-production
+            - release_cmp-rc
+            - release_cmp-demo
+            - release_cmp-prod
 
 deploy_image: &deploy_image
   docker:
@@ -46,7 +69,7 @@ deploy_image: &deploy_image
           TAG="$(cat tag.txt)"
           curl -sSO -u "${DEPLOYER_USERNAME}":"${DEPLOYER_PASSWORD}" \
             "https://deployer.repositive.io/scripts/deploy.sh"
-          sh deploy.sh "$CIRCLE_PROJECT_REPONAME:$TAG" $CLUSTER $CONFIG_PATH
+          sh deploy.sh "$CIRCLE_PROJECT_REPONAME:$TAG" $CLUSTER $CONFIG_PATH $CIRCLE_BRANCH
 
 jobs:
   test_and_make:
@@ -62,10 +85,9 @@ jobs:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
             - ./node_modules
-      - run: npm run make
+      - run: npm run compile
       - run: npm run lint
       - run: npm run test
-      - run: echo "$(git rev-parse --short HEAD)" > tag.txt
       - store_artifacts:
           path: ./coverage
       - persist_to_workspace:
@@ -73,7 +95,6 @@ jobs:
           paths:
             - dist
             - node_modules
-            - tag.txt
 
   build_container:
     machine: true
@@ -111,26 +132,26 @@ jobs:
       - run:
           name: Create release tag
           command: |
-            TAG="$(date +%s)"
+            TAG=$(date +"%Y%m%d%H%M%S")
             SHA="$(git rev-parse HEAD)"
             curl -fsS -u "${GITHUB_USERNAME}":"${GITHUB_PASSWORD}" \
-              -d '{"ref":"refs/tags/'"${TAG}"'", "sha":"'"${SHA}"'"}' \
+              -d '{"ref":"refs/tags/'"${TAG}_${CIRCLE_BRANCH}"'", "sha":"'"${SHA}"'"}' \
               -X POST "https://api.github.com/repos/repositive/${CIRCLE_PROJECT_REPONAME}/git/refs"
 
-  release_cmp-dev:
+  release_cmp-rc:
     environment:
-      - CLUSTER: 'dev'
-      - CONFIG_PATH: '.circleci/k8s.dev.yml'
-    <<: *deploy_image
-
-  release_cmp-production:
-    environment:
-      - CLUSTER: 'production'
-      - CONFIG_PATH: '.circleci/k8s.production.yml'
+      - CLUSTER: 'cmp-dev'
+      - CONFIG_PATH: '.circleci/k8s.cmp-rc.yml'
     <<: *deploy_image
 
   release_cmp-demo:
     environment:
-      - CLUSTER: 'dev'
-      - CONFIG_PATH: '.circleci/k8s.demo.yml'
+      - CLUSTER: 'cmp-dev'
+      - CONFIG_PATH: '.circleci/k8s.cmp-demo.yml'
+    <<: *deploy_image
+
+  release_cmp-prod:
+    environment:
+      - CLUSTER: 'cmp-prod'
+      - CONFIG_PATH: '.circleci/k8s.cmp-prod.yml'
     <<: *deploy_image
