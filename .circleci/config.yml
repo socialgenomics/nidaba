@@ -108,12 +108,32 @@ jobs:
             REPO="${CIRCLE_PROJECT_REPONAME}"
             TAG="$(cat tag.txt)"
 
+            # Login to to Vault with GH token
+            PAYLOAD="{ \"token\": \"${GITHUB_TOKEN}\" }"
+            TOKEN=$(curl -s --request POST --data "${PAYLOAD}" https://v8sh48s.repositive.io:8200/v1/auth/github/login --insecure | jq .auth.client_token | tr -d '"')
+
+            # Request Credentials for GCR 
+            DOCKERAUTH=$(curl -k -s --header "X-Vault-Token: $TOKEN" https://v8sh48s.repositive.io:8200/v1/gcp/token/gcr | jq .data.token | tr -d '"')
+
+            # Build the Container
             docker build -t app .
+
+            # TAG and Push to registry.repositive.io (AWS)
             docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" registry.repositive.io:5000
             docker tag app "registry.repositive.io:5000/${REPO}:latest"
             docker tag app "registry.repositive.io:5000/${REPO}:${TAG}"
             docker push "registry.repositive.io:5000/${REPO}:latest"
             docker push "registry.repositive.io:5000/${REPO}:${TAG}"
+
+            # Authenticate to docker
+            docker login -u oauth2accesstoken -p $DOCKERAUTH https://gcr.io/repositive-gcr
+
+            # TAG and Push to gcr.io/repositive-gcr (GCP)
+            docker tag app "gcr.io/repositive-gcr/${REPO}:latest"
+            docker tag app "gcr.io/repositive-gcr/${REPO}:${TAG}"
+            docker push "gcr.io/repositive-gcr/${REPO}:latest"
+            docker push "gcr.io/repositive-gcr/${REPO}:${TAG}"
+
 
   compute_tag:
     machine: true
