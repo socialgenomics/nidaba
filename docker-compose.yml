@@ -2,7 +2,7 @@ version: '2'
 services:
   nidaba:
     command: /bin/sh -c "npm i && npm run make && npm run startDev"
-    image: node:8-alpine
+    image: node:8-slim
     working_dir: /opt
     volumes:
       - .:/opt
