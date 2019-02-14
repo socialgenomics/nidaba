@@ -74,20 +74,22 @@ deploy_image: &deploy_image
 jobs:
   test_and_make:
     docker:
-      - image: circleci/node:8.9
+      - image: circleci/node:10
     steps:
       - checkout
       - restore_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
-      - run: sudo npm install -g npm@latest
-      - run: npm install
+          key: node-deps-v1-{{ checksum "package-lock.json" }}
+      - run: npm ci
       - save_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
+          key: node-deps-v1-{{ checksum "package-lock.json" }}
           paths:
-            - ./node_modules
+            - $HOME/.npm
       - run: npm run compile
       - run: npm run lint
       - run: npm run test
+      - run:
+          name: Prune node_modules
+          command: npm prune --production
       - store_artifacts:
           path: ./coverage
       - persist_to_workspace:
@@ -112,11 +114,14 @@ jobs:
             PAYLOAD="{ \"token\": \"${GITHUB_TOKEN}\" }"
             TOKEN=$(curl -s --request POST --data "${PAYLOAD}" https://v8sh48s.repositive.io:8200/v1/auth/github/login --insecure | jq .auth.client_token | tr -d '"')
 
-            # Request Credentials for GCR 
+            # Request Credentials for GCR
             DOCKERAUTH=$(curl -k -s --header "X-Vault-Token: $TOKEN" https://v8sh48s.repositive.io:8200/v1/gcp/token/gcr | jq .data.token | tr -d '"')
 
             # Build the Container
             docker build -t app .
+
+            # Useful for debugging image sizes
+            docker images
 
             # TAG and Push to registry.repositive.io (AWS)
             docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" registry.repositive.io:5000
